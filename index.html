@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Weather Forecast</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+        #weather {
+            margin-top: 20px;
+        }
+        .period {
+            border: 1px solid #ccc;
+            padding: 10px;
+            margin-bottom: 10px;
+        }
+        .cyclone-warning {
+            color: red;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <h1>Enter Location for Weather Forecast</h1>
+    <form id="locationForm">
+        <label for="latitude">Latitude:</label>
+        <input type="text" id="latitude" name="latitude" required>
+        
+        <label for="longitude">Longitude:</label>
+        <input type="text" id="longitude" name="longitude" required>
+        
+        <button type="submit">Get Forecast</button>
+    </form>
+
+    <div id="weather"></div>
+
+    <script>
+        // Function to fetch grid points based on latitude and longitude
+        function getGridPoints(latitude, longitude) {
+            const url = `https://api.weather.gov/points/${latitude},${longitude}`;
+            
+            return fetch(url, {
+                headers: {
+                    "User-Agent": "WeatherApp (your-email@example.com)"
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                // Return the forecast URL from the response
+                return data.properties.forecast;
+            })
+            .catch(error => console.error("Error fetching grid points:", error));
+        }
+
+        // Function to fetch weather forecast data using forecast URL
+        function getWeatherForecast(forecastUrl) {
+            return fetch(forecastUrl, {
+                headers: {
+                    "User-Agent": "WeatherApp (your-email@example.com)"
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                // Return the forecast periods
+                return data.properties.periods;
+            })
+            .catch(error => console.error("Error fetching forecast:", error));
+        }
+
+        // Function to display weather data on the webpage
+        function displayWeatherData(forecastData) {
+            const weatherDiv = document.getElementById("weather");
+            weatherDiv.innerHTML = "";  // Clear previous data
+            
+            forecastData.forEach(period => {
+                const periodDiv = document.createElement("div");
+                periodDiv.className = "period";
+
+                // Wind speed in mph
+                const windSpeed = parseFloat(period.windSpeed);
+
+                periodDiv.innerHTML = `
+                    <h3>${period.name}</h3>
+                    <p><strong>Temperature:</strong> ${period.temperature}°${period.temperatureUnit}</p>
+                    <p><strong>Dew Point:</strong> ${period.dewPoint}°${period.dewPointUnit}</p>
+                    <p><strong>Humidity:</strong> ${period.humidity}%</p>
+                    <p><strong>Wind Speed:</strong> ${period.windSpeed} ${period.windDirection}</p>
+                    <p><strong>Pressure:</strong> ${period.pressure} ${period.pressureUnit}</p>
+                    <p><strong>Short Forecast:</strong> ${period.shortForecast}</p>
+                    <p><strong>Detailed Forecast:</strong> ${period.detailedForecast}</p>
+                    <p class="cyclone-warning">${windSpeed > 100 ? "⚠️ Cyclone Warning: Wind speed exceeds 100 mph!" : "🌤️ No cyclone expected."}</p>
+                `;
+                weatherDiv.appendChild(periodDiv);
+            });
+        }
+
+        // Main function to initiate the API calls
+        function fetchWeather(latitude, longitude) {
+            getGridPoints(latitude, longitude)
+            .then(forecastUrl => getWeatherForecast(forecastUrl))
+            .then(forecastData => displayWeatherData(forecastData));
+        }
+
+        // Event listener for form submission
+        document.getElementById("locationForm").addEventListener("submit", function(event) {
+            event.preventDefault();  // Prevent page refresh
+
+            // Get latitude and longitude from form input
+            const latitude = document.getElementById("latitude").value;
+            const longitude = document.getElementById("longitude").value;
+
+            // Fetch and display the weather
+            fetchWeather(latitude, longitude);
+        });
+    </script>
+</body>
+</html>
